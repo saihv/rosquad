@@ -1,0 +1,1 @@
+/usr/bin/c++  -fPIC -O2 -g -DNDEBUG   -shared -Wl,-soname,libgtest_main.so -o /home/sai/ros_ws/rosquad/lib/libgtest_main.so CMakeFiles/gtest_main.dir/src/gtest_main.cc.o  -L/home/sai/ros_ws/rosquad/build/gtest/src -lpthread /home/sai/ros_ws/rosquad/lib/libgtest.so -lpthread -Wl,-rpath,/home/sai/ros_ws/rosquad/build/gtest/src:/home/sai/ros_ws/rosquad/lib 

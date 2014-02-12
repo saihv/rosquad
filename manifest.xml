@@ -1,0 +1,14 @@
+<package>
+  <description brief="rosquad">
+
+     rosquad
+
+  </description>
+  <author>Sai Vemprala</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/rosquad</url>
+
+</package>
+
+
