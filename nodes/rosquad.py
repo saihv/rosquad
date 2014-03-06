@@ -2,6 +2,7 @@
 import roslib; roslib.load_manifest('roscopter')
 import rospy
 from std_msgs.msg import String, Header
+from visualization_msgs.msg import Marker
 from std_srvs.srv import *
 from sensor_msgs.msg import NavSatFix, NavSatStatus, Imu
 import roscopter.msg
@@ -116,22 +117,28 @@ def px4_auto(req):
 	master.mav.set_mode_send(master.target_system, base_mode_value(PX4_CUSTOM_MAIN_MODE_AUTO), custom_mode_value(PX4_CUSTOM_SUB_MODE_AUTO_TAKEOFF, PX4_CUSTOM_MAIN_MODE_AUTO))
 	print "Pixhawk is now in AUTO mode"
 
+def px4_easy(req):
+	'''Set Pixhawk to EASY mode'''
+	global base_mode
+	master.mav.set_mode_send(master.target_system, base_mode_value(PX4_CUSTOM_MAIN_MODE_EASY), custom_mode_value(PX4_CUSTOM_SUB_MODE_EASY, PX4_CUSTOM_MAIN_MODE_EASY))
+
 def px4_takeoff(req):
 	print("Sending command to mavlink")
-	master.mav.set_quad_swarm_roll_pitch_yaw_thrust_send(1, 1, 0, 0, 0, 6000)
+	master.mav.set_quad_swarm_roll_pitch_yaw_thrust_send(1, 2, 0, 0, 0, 6000)
 	rospy.sleep(2.)
-	master.mav.set_quad_swarm_roll_pitch_yaw_thrust_send(1, 1, 0, 0, 0, 12000)
+	master.mav.set_quad_swarm_roll_pitch_yaw_thrust_send(1, 2, 0, 0, 0, 12000)
 	rospy.sleep(2.)
-	master.mav.set_quad_swarm_roll_pitch_yaw_thrust_send(1, 1, 0, 0, 0, 18000)
+	master.mav.set_quad_swarm_roll_pitch_yaw_thrust_send(1, 2, 0, 0, 0, 18000)
 	rospy.sleep(2.)
-	master.mav.set_quad_swarm_roll_pitch_yaw_thrust_send(1, 1, 0, 0, 0, 24000)
+	master.mav.set_quad_swarm_roll_pitch_yaw_thrust_send(1, 2, 0, 0, 0, 24000)
 	rospy.sleep(2.)
-	master.mav.set_quad_swarm_roll_pitch_yaw_thrust_send(1, 1, 0, 0, 0, 28000)
+	master.mav.set_quad_swarm_roll_pitch_yaw_thrust_send(1, 2, 0, 0, 0, 28000)
 	rospy.sleep(2.)
-	master.mav.set_quad_swarm_roll_pitch_yaw_thrust_send(1, 1, 0, 0, 0, 65535)
+	master.mav.set_quad_swarm_roll_pitch_yaw_thrust_send(1, 2, 0, 0, 0, 65534)
+	rospy.sleep(2.)
 
 def px4_land(req):
-	master.mav.set_quad_swarm_roll_pitch_yaw_thrust_send(1, 1, 0, 0, 0, 0)
+	master.mav.set_quad_swarm_roll_pitch_yaw_thrust_send(1, 2, 0, 0, 0, 0)
 
 def px4_moveforward(req):
 	'''Start moving forward'''
@@ -153,7 +160,14 @@ def px4_moveleft(req):
 	print("Moving left")
 	master.mav.set_quad_swarm_roll_pitch_yaw_thrust_send(1, 3, -32767, 0, 0, 0)
 
+def find_point(data):
+    if data.id == "globalArrow":
+        pointx = data.pose.position.x;
+        pointy = data.pose.position.y;
+        pointz = data.pose.position.z;
+        print "Goal position is : %f, %f, %f" %(pointx, pointy, pointz)
 
+        if
 
 pub_gps = rospy.Publisher('gps', NavSatFix)
 #pub_imu = rospy.Publisher('imu', Imu)
@@ -181,6 +195,10 @@ def mainloop():
     rospy.init_node('roscopter')
     while not rospy.is_shutdown():
         rospy.sleep(0.001)
+
+        rospy.Subscriber("visualization_doors", Marker, find_point)    
+        rospy.spin()
+        
         msg = master.recv_match(blocking=False)
         if not msg:
             continue
@@ -239,4 +257,5 @@ master.mav.request_data_stream_send(master.target_system, master.target_componen
 if __name__ == '__main__':
     try:
         mainloop()
+
     except rospy.ROSInterruptException: pass
