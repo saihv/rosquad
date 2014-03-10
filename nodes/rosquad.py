@@ -145,22 +145,22 @@ def px4_land(req):
 def px4_moveforward(req):
 	'''Start moving forward'''
 	print("Moving forward")
-	master.mav.set_quad_swarm_roll_pitch_yaw_thrust_send(1, 3, 0, 32767, 0, 0)
+	master.mav.set_quad_swarm_roll_pitch_yaw_thrust_send(1, 2, 0, -32767, 0, 0)
 
 def px4_movebackward(req):
 	'''Start moving forward'''
 	print("Moving backward")
-	master.mav.set_quad_swarm_roll_pitch_yaw_thrust_send(1, 3, 0, -32767, 0, 0)
+	master.mav.set_quad_swarm_roll_pitch_yaw_thrust_send(1, 2, 0, 32767, 0, 0)
 
 def px4_moveright(req):
 	'''Start moving forward'''
 	print("Moving right")
-	master.mav.set_quad_swarm_roll_pitch_yaw_thrust_send(1, 3, 32767, 0, 0, 0)
+	master.mav.set_quad_swarm_roll_pitch_yaw_thrust_send(1, 2, 32767, 0, 0, 0)
 
 def px4_moveleft(req):
 	'''Start moving forward'''
 	print("Moving left")
-	master.mav.set_quad_swarm_roll_pitch_yaw_thrust_send(1, 3, -32767, 0, 0, 0)
+	master.mav.set_quad_swarm_roll_pitch_yaw_thrust_send(1, 2, -32767, 0, 0, 0)
 
 def find_point(data):
     global throttlecmd
@@ -172,9 +172,9 @@ def find_point(data):
         print "Goal position is : %f, %f, %f" %(pointx, pointy, pointz)
 
 	#msg = master.recv_match(blocking=False)
-        #msg_type = msg.get_type()
+    #msg_type = msg.get_type()
 	#if msg_type == "RC_CHANNELS_RAW" :
-       # 	#pub_rc.publish([msg.chan1_raw, msg.chan2_raw, msg.chan3_raw, msg.chan4_raw, msg.chan5_raw, msg.chan6_raw, msg.chan7_raw, msg.chan8_raw]) 
+    #	pub_rc.publish([msg.chan1_raw, msg.chan2_raw, msg.chan3_raw, msg.chan4_raw, msg.chan5_raw, msg.chan6_raw, msg.chan7_raw, msg.chan8_raw]) 
 	#	print "RC throttle is %d" % msg.chan3_raw
 	#	throttle = msg.chan3_raw
 	#        throttlecmd = (throttle - 1170) / 700
@@ -182,10 +182,13 @@ def find_point(data):
 
 	if pointz > 1:
 	    print "Moving forward"
-            print "Throttle command is %d" % throttlecmd
-            master.mav.set_quad_swarm_roll_pitch_yaw_thrust_send(1, 2, 0, -32767, 0, throttlecmd)
-	    #rospy.sleep(2.)
-	    #master.mav.set_quad_swarm_roll_pitch_yaw_thrust_send(1, 2, 0, 0, 0, throttlecmd)
+        #master.mav.set_quad_swarm_roll_pitch_yaw_thrust_send(1, 2, 0, -32767, 0, throttlecmd)
+        px4_moveforward()
+
+	if pointz < 1:
+		print "Reached point"
+		#master.mav.set_quad_swarm_roll_pitch_yaw_thrust_send(1, 2, 0, 0, 0, throttlecmd)
+		px4_movebackward()
 
 	
 
@@ -220,7 +223,8 @@ def mainloop():
     	rospy.Subscriber("visualization_doors", Marker, find_point)   
 	rospy.spin() 
 	
-	#master.mav.set_quad_swarm_roll_pitch_yaw_thrust_send(1, 2, 0, 0, 0, throttlecmd)
+
+	master.mav.set_quad_swarm_roll_pitch_yaw_thrust_send(1, 2, 0, 0, 0, throttlecmd)
 	
         msg = master.recv_match(blocking=False)
         print "Continuing"
@@ -235,13 +239,11 @@ def mainloop():
             msg_type = msg.get_type()
             if msg_type == "RC_CHANNELS_RAW" :
             	pub_rc.publish([msg.chan1_raw, msg.chan2_raw, msg.chan3_raw, msg.chan4_raw, msg.chan5_raw, msg.chan6_raw, msg.chan7_raw, msg.chan8_raw]) 
-				print "RC throttle is" % msg.chan3_raw
-
+		
             if msg_type == "HEARTBEAT":
             	pub_state.publish(msg.base_mode & mavutil.mavlink.MAV_MODE_FLAG_SAFETY_ARMED, 
                                   msg.base_mode & mavutil.mavlink.MAV_MODE_FLAG_GUIDED_ENABLED, 
                                   mavutil.mode_string_v10(msg))
-            	
             if msg_type == "VFR_HUD":
                 pub_vfr_hud.publish(msg.airspeed, msg.groundspeed, msg.heading, msg.throttle, msg.alt, msg.climb)
 
