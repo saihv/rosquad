@@ -1,0 +1,6 @@
+<launch>
+
+	<node pkg = "rosbag" name = "HRLlogger" type = "record" args = "-O /visualization_doors"/>
+	<node pkg = "rosquad" name = "rosquad" type = "rosquad.py"/>
+
+</launch>
