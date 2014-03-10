@@ -95,7 +95,7 @@ def base_mode_value(new_custom_mode):
     else:
         return (base_mode & ARMED_MASK | MAV_MODE_FLAG_DECODE_POSITION_MANUAL | MAV_MODE_FLAG_DECODE_POSITION_STABILIZE | MAV_MODE_FLAG_DECODE_POSITION_CUSTOM_MODE) #_1010001
         
-def px4_arm(req):
+def px4_arm():
     '''Arm the Pixhawk'''
     global custom_mode
     global base_mode
@@ -103,7 +103,7 @@ def px4_arm(req):
     master.mav.set_mode_send(master.target_system, base_mode | MAV_MODE_FLAG_DECODE_POSITION_SAFETY, custom_mode_value(custom_mode['sub_mode'], custom_mode['main_mode']))
     print "Pixhawk armed"
 
-def px4_disarm(args):
+def px4_disarm():
     '''Disarm the Pixhawk'''
     global custom_mode
     global base_mode
@@ -117,10 +117,10 @@ def px4_auto(req):
 	master.mav.set_mode_send(master.target_system, base_mode_value(PX4_CUSTOM_MAIN_MODE_AUTO), custom_mode_value(PX4_CUSTOM_SUB_MODE_AUTO_TAKEOFF, PX4_CUSTOM_MAIN_MODE_AUTO))
 	print "Pixhawk is now in AUTO mode"
 
-def px4_easy(req):
+def px4_easy():
 	'''Set Pixhawk to EASY mode'''
 	global base_mode
-	master.mav.set_mode_send(master.target_system, base_mode_value(PX4_CUSTOM_MAIN_MODE_EASY), custom_mode_value(PX4_CUSTOM_SUB_MODE_EASY, PX4_CUSTOM_MAIN_MODE_EASY))
+	master.mav.set_mode_send(master.target_system, base_mode_value(PX4_CUSTOM_MAIN_MODE_EASY), custom_mode_value(PX4_CUSTOM_MAIN_MODE_EASY, PX4_CUSTOM_MAIN_MODE_EASY))
 
 def px4_takeoff(req):
 	print("Sending command to mavlink")
@@ -134,11 +134,13 @@ def px4_takeoff(req):
 	rospy.sleep(2.)
 	master.mav.set_quad_swarm_roll_pitch_yaw_thrust_send(1, 2, 0, 0, 0, 28000)
 	rospy.sleep(2.)
-	master.mav.set_quad_swarm_roll_pitch_yaw_thrust_send(1, 2, 0, 0, 0, 65534)
-	rospy.sleep(2.)
 
 def px4_land(req):
-	master.mav.set_quad_swarm_roll_pitch_yaw_thrust_send(1, 2, 0, 0, 0, 0)
+	master.mav.set_quad_swarm_roll_pitch_yaw_thrust_send(1, 2, 0, 0, 0, 18000)
+	rospy.sleep(2.)
+	master.mav.set_quad_swarm_roll_pitch_yaw_thrust_send(1, 2, 0, 0, 0, 12000)
+	master.mav.set_quad_swarm_roll_pitch_yaw_thrust_send(1, 2, 0, 0, 0, 6000)
+	master.mav.set_quad_swarm_roll_pitch_yaw_thrust_send(1, 2, 0, 0, 0, 2000)
 
 def px4_moveforward(req):
 	'''Start moving forward'''
@@ -161,13 +163,31 @@ def px4_moveleft(req):
 	master.mav.set_quad_swarm_roll_pitch_yaw_thrust_send(1, 3, -32767, 0, 0, 0)
 
 def find_point(data):
-    if data.id == "globalArrow":
-        pointx = data.pose.position.x;
-        pointy = data.pose.position.y;
-        pointz = data.pose.position.z;
+    global throttlecmd
+    throttlecmd = 0
+    if data.ns == "globalArrow":
+        pointx = data.points[1].x;
+        pointy = data.points[1].y;
+        pointz = data.points[1].z;
         print "Goal position is : %f, %f, %f" %(pointx, pointy, pointz)
 
-        if
+	#msg = master.recv_match(blocking=False)
+        #msg_type = msg.get_type()
+	#if msg_type == "RC_CHANNELS_RAW" :
+       # 	#pub_rc.publish([msg.chan1_raw, msg.chan2_raw, msg.chan3_raw, msg.chan4_raw, msg.chan5_raw, msg.chan6_raw, msg.chan7_raw, msg.chan8_raw]) 
+	#	print "RC throttle is %d" % msg.chan3_raw
+	#	throttle = msg.chan3_raw
+	#        throttlecmd = (throttle - 1170) / 700
+	#	throttlecmd = throttlecmd * 32767
+
+	if pointz > 1:
+	    print "Moving forward"
+            print "Throttle command is %d" % throttlecmd
+            master.mav.set_quad_swarm_roll_pitch_yaw_thrust_send(1, 2, 0, -32767, 0, throttlecmd)
+	    #rospy.sleep(2.)
+	    #master.mav.set_quad_swarm_roll_pitch_yaw_thrust_send(1, 2, 0, 0, 0, throttlecmd)
+
+	
 
 pub_gps = rospy.Publisher('gps', NavSatFix)
 #pub_imu = rospy.Publisher('imu', Imu)
@@ -190,16 +210,20 @@ land_service = rospy.Service('land',Empty,px4_land)
 
 #state
 gps_msg = NavSatFix()
-
+    
 def mainloop():
     rospy.init_node('roscopter')
     while not rospy.is_shutdown():
         rospy.sleep(0.001)
 
-        rospy.Subscriber("visualization_doors", Marker, find_point)    
-        rospy.spin()
-        
+	print "Listening"
+    	rospy.Subscriber("visualization_doors", Marker, find_point)   
+	rospy.spin() 
+	
+	#master.mav.set_quad_swarm_roll_pitch_yaw_thrust_send(1, 2, 0, 0, 0, throttlecmd)
+	
         msg = master.recv_match(blocking=False)
+        print "Continuing"
         if not msg:
             continue
         #print msg.get_type()
@@ -211,10 +235,13 @@ def mainloop():
             msg_type = msg.get_type()
             if msg_type == "RC_CHANNELS_RAW" :
             	pub_rc.publish([msg.chan1_raw, msg.chan2_raw, msg.chan3_raw, msg.chan4_raw, msg.chan5_raw, msg.chan6_raw, msg.chan7_raw, msg.chan8_raw]) 
+				print "RC throttle is" % msg.chan3_raw
+
             if msg_type == "HEARTBEAT":
             	pub_state.publish(msg.base_mode & mavutil.mavlink.MAV_MODE_FLAG_SAFETY_ARMED, 
                                   msg.base_mode & mavutil.mavlink.MAV_MODE_FLAG_GUIDED_ENABLED, 
                                   mavutil.mode_string_v10(msg))
+            	
             if msg_type == "VFR_HUD":
                 pub_vfr_hud.publish(msg.airspeed, msg.groundspeed, msg.heading, msg.throttle, msg.alt, msg.climb)
 
@@ -242,7 +269,7 @@ def mainloop():
                                      msg.xmag, msg.ymag, msg.zmag)
 
 # wait for the heartbeat msg to find the system ID
-wait_heartbeat(master)
+# wait_heartbeat(master)
 
 # waiting for 10 seconds for the system to be ready
 print("Getting system ready.. please wait.")
