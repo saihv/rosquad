@@ -182,14 +182,14 @@ def find_point(data):
 	#	throttlecmd = throttlecmd * 32767
 
 	if pointz > 1:
-	    rospy.loginfo("Moving forward")
+	    print "Moving forward"
             master.mav.set_quad_swarm_roll_pitch_yaw_thrust_send(1, 2, 0, -32767, 0, throttlecmd)
             #px4_moveforward()
 
 	if pointz < 1:
-            rospy.loginfo("Reached point")
-	    master.mav.set_quad_swarm_roll_pitch_yaw_thrust_send(1, 2, 0, 0, 0, throttlecmd)
-	    #px4_movebackward()
+		print "Reached point"
+		master.mav.set_quad_swarm_roll_pitch_yaw_thrust_send(1, 2, 0, 0, 0, throttlecmd)
+		#px4_movebackward()
 
 	
 
