@@ -7,7 +7,7 @@ from pymavlink import mavutil
 import time
 
 from std_msgs.msg import String, Header
-from visualization_msgs.msg import Marker
+from sensor_msgs.msg import Joy
 import sys,struct,time,os
 from std_srvs.srv import *
 
@@ -29,10 +29,9 @@ parser.add_option("--enable-control",dest="enable_control", default=False, help=
 # create a mavlink serial instance
 master = mavutil.mavlink_connection(opts.device, baud=opts.baudrate)
 
-global requirePID, prevtime, currtime, cnt, prevpointx;
+global requirePID, prevtime, currtime;
 prevtime = 0;
-prevpointx = 0;
-cnt = 0;
+
 requirePID = 0
 
 if opts.device is None:
@@ -88,36 +87,26 @@ def PID():
 
 	speed = P + I + D;
 
-	if speed > 1:
-	    speed = 1
-	elif speed < -1:
-	    speed = -1;
-
 	master.mav.set_quad_swarm_roll_pitch_yaw_thrust_send(1, 2, 0, speed*-32767, 0, 0)
 	print "Sent %f"%speed
 
 	prevtime = time.time();
 	
 def send_command(data):
-    global cnt, prevpointx
-    cnt = cnt + 1
-    if data.ns == "globalArrow":
-	pointx = data.points[1].x;
-        pointy = data.points[1].y;
-        pointz = data.points[1].z;
-        print "Goal position is #%d: %f, %f, %f" %(cnt, pointx, pointy, pointz)
+    global requirePID
+    speed = data.axes[4];
+    print "Received velocity command is %f"%speed;
 
-	if abs(prevpointx) < 0.1 and abs(pointx) > 0.1:
-	    PID()
-	    rospy.sleep(1.)
-    
-	if abs(pointx) > 0.1:
-	    master.mav.set_quad_swarm_roll_pitch_yaw_thrust_send(1, 2, pointx/abs(pointx)*24000, 0, 0, 0)  
+    master.mav.set_quad_swarm_roll_pitch_yaw_thrust_send(1, 2, 0, speed*-32767, 0, 0)
 
-	else:
-	    master.mav.set_quad_swarm_roll_pitch_yaw_thrust_send(1, 2, 0, -18000, 0, 0)
+    if requirePID == 0:
+	if abs(speed) > 0.5:
+	    requirePID = 1
 
-	prevpointx = pointx;
+    if requirePID == 1:
+	if abs(speed) <= 0.1:
+            PID()
+	    requirePID = 0
 
 def mainloop():
     rospy.init_node('rosquad')
@@ -126,7 +115,7 @@ def mainloop():
 	rospy.sleep(0.1)
 	#master.mav.set_quad_swarm_roll_pitch_yaw_thrust_send(1, 2, 0, -32767, 0, 0)
 	
-    	rospy.Subscriber("visualization_doors", Marker, send_command)
+    	rospy.Subscriber("joy", Joy, send_command)
     	rospy.spin()
         
 # wait for the heartbeat msg to find the system ID
