@@ -288,18 +288,18 @@ def mainloop():
         rospy.sleep(0.1)
 
 	print "Listening"
-    	rospy.Subscriber("visualization_doors", Marker, find_point)   
-	rospy.spin() 
+    	#rospy.Subscriber("visualization_doors", Marker, find_point)   
+	#rospy.spin() 
 	
 	
-	throttlecmd = 0
+	#throttlecmd = 0
 #	master.mav.set_quad_swarm_roll_pitch_yaw_thrust_send(1, 2, 0, -17000, 0, throttlecmd)
 	
         msg = master.recv_match(blocking=False)
         print "Continuing"
         if not msg:
             continue
-        #print msg.get_type()
+        print msg.get_type()
         if msg.get_type() == "BAD_DATA":
             if mavutil.all_printable(msg.data):
                 sys.stdout.write(msg.data)
