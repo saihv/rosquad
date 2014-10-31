@@ -17,7 +17,7 @@ from optparse import OptionParser
 parser = OptionParser("rosquad.py [options]")
 
 parser.add_option("--baudrate", dest="baudrate", type='int',
-                  help="master port baud rate", default=230400)
+                  help="master port baud rate", default=57600)
 parser.add_option("--device", dest="device", default="/dev/ttyACM0", help="serial device")
 parser.add_option("--rate", dest="rate", default=10, type='int', help="requested stream rate")
 parser.add_option("--source-system", dest='SOURCE_SYSTEM', type='int',
@@ -43,28 +43,50 @@ def wait_heartbeat(m):
 
 def send_command(data):
     currentx = data.pose.pose.position.z;
-    currenty = data.pose.pose.position.y;
-    currentz = data.pose.pose.position.x;
+    currenty = data.pose.pose.position.x;
+    currentz = data.pose.pose.position.y;
+    global i
+    global X
+    global Y
+    
+    if i < 5:
+	print "Target values are %f, %f"%(X[i],Y[i])
+	print "Current values are %f, %f"%(currentx, currenty)
+	
+	if X[i] != X[i-1]:
+	    diffx = (X[i]-X[i-1])/abs(X[i]-X[i-1])
+	    if round(currentx) != X[i]:
+	    	master.mav.set_quad_swarm_roll_pitch_yaw_thrust_send(2, 1, 0, -1*diffx*24000, 0, 0)
+		print "Moving to target"
 
-    while not i > 2:
-	while(round(currentx) != X[i]):
-	    if currentx < X[i]:
-                master.mav.set_quad_swarm_roll_pitch_yaw_thrust_send(2, 1, 0, -32767, 0, 0)
-	    if currentx > X[i]:
-		master.mav.set_quad_swarm_roll_pitch_yaw_thrust_send(2, 1, 0, 32767, 0, 0)
+	    else: 
+	        master.mav.set_quad_swarm_roll_pitch_yaw_thrust_send(2, 1, 0, 0, 0, 0)
+	        print "Stopping"
+	        rospy.sleep(1.5)
+		i = i+1
 
-	master.mav.set_quad_swarm_roll_pitch_yaw_thrust_send(2, 1, 0, 0, 0, 0)
-	rospy.sleep(1.5)
-	i = i+1
+	elif Y[i] != Y[i-1]:
+	    diffy = (Y[i]-Y[i-1])/abs(Y[i]-Y[i-1])
+	    if round(currenty) != Y[i]:
+		master.mav.set_quad_swarm_roll_pitch_yaw_thrust_send(2, 1, -1*diffy*24000, 0, 0, 0)
+		print "Moving to target"
+
+            else: 
+	        master.mav.set_quad_swarm_roll_pitch_yaw_thrust_send(2, 1, 0, 0, 0, 0)
+	        print "Stopping"
+	        rospy.sleep(1.5)
+		i = i+1
 
 def mainloop():
     rospy.init_node('rosquad')
     while not rospy.is_shutdown():
     	rospy.sleep(0.1)
-
-	X = [10, 0]
-	
-    	rospy.Subscriber("cam2_to_init", Odometry, send_command)
+	global i
+	global X
+	global Y
+	X = [0, 3, 3, 0, 0]
+	Y = [0, 0, 2, 2, 0]
+	rospy.Subscriber("cam2_to_init", Odometry, send_command)
     	rospy.spin()
         
 # wait for the heartbeat msg to find the system ID
